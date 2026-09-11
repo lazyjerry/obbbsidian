@@ -1,0 +1,157 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'nonce-test'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self';"
+    />
+    <link rel="stylesheet" href="/media/style.css" />
+    <link rel="stylesheet" href="/media/main.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script nonce="test">
+      window.requests = [];
+      window.fixture = {
+        shared: {
+          "Welcome.md": {
+            text: "# Welcome\n\n[[Second]] **bold** ==mark==\n\n<script>alert(1)<\/script>",
+            revision: "w1",
+          },
+          "Second.md": { text: "# Second\n", revision: "s1" },
+        },
+        private: { "Private.md": { text: "Private", revision: "p1" } },
+      };
+      window.fixture.shared["Theme.md"] = {
+        text: "# Heading\n\nBody **bold** and `inline` [link](https://example.com)\n\n```yaml\nredis: alpine\n```\n",
+        revision: "theme",
+      };
+      window.fixture.shared["Rich.md"] = {
+        text: "# Rich\n\n- [x] Done\n\n$E=mc^2$\n\n```mermaid\ngraph LR\n A-->B\n```\n",
+        revision: "rich",
+      };
+      window.fixture.shared["Board.canvas"] = {
+        text: JSON.stringify({
+          nodes: [
+            {
+              id: "a",
+              type: "text",
+              text: "Canvas card",
+              x: 0,
+              y: 0,
+              width: 250,
+              height: 120,
+            },
+          ],
+          edges: [],
+        }),
+        revision: "canvas",
+      };
+      window.fixture.shared["Data.base"] = {
+        text: "views:\n  - type: table\n    name: Notes\n",
+        revision: "base",
+      };
+      window.fixture.shared["CRLF.md"] = {
+        text: "# Windows\r\nsecond line\r\n",
+        revision: "crlf",
+      };
+      window.vaults = [
+        { id: "shared", name: "工作筆記", root: "/test/shared" },
+        { id: "private", name: "個人筆記", root: "/test/private" },
+      ];
+      let state = {},
+        drafts = {};
+      window.acquireVsCodeApi = () => ({
+        getState: () => state,
+        setState: (s) => (state = s),
+        postMessage: async (m) => {
+          window.requests.push(m);
+          let result, error;
+          try {
+            const data = window.fixture[m.source],
+              tree = () =>
+                Object.keys(data).map((path) => ({
+                  path,
+                  name: path,
+                  directory: false,
+                }));
+            switch (m.type) {
+              case "index":
+                result = [];
+                break;
+              case "vaults":
+                result = [...window.vaults];
+                break;
+              case "choose":
+                if (!window.nextVault) {
+                  result = undefined;
+                  break;
+                }
+                result = window.nextVault;
+                if (!window.vaults.some((v) => v.id === result.id))
+                  window.vaults.push(result);
+                window.fixture[result.id] ||= {};
+                window.nextVault = undefined;
+                break;
+              case "removeVault":
+                window.vaults = window.vaults.filter((v) => v.id !== m.source);
+                result = {};
+                break;
+              case "init":
+                result = {
+                  source: m.source,
+                  root:
+                    window.vaults.find((v) => v.id === m.source)?.root || "",
+                  tree: data ? tree() : [],
+                  config: {},
+                };
+                break;
+              case "tree":
+                result = tree();
+                break;
+              case "read":
+                result = { ...data[m.path], draft: drafts[m.source + m.path] };
+                break;
+              case "draft":
+                drafts[m.source + m.path] = {
+                  text: m.text,
+                  revision: m.revision,
+                };
+                result = {};
+                break;
+              case "save":
+                if (data[m.path].revision !== m.revision)
+                  throw Error("檔案已被外部修改");
+                data[m.path] = { text: m.text, revision: String(Date.now()) };
+                delete drafts[m.source + m.path];
+                result = { revision: data[m.path].revision };
+                break;
+              case "discardDraft":
+                delete drafts[m.source + m.path];
+                result = {};
+                break;
+              case "link":
+                result = { path: m.target + ".md" };
+                break;
+              default:
+                result = {};
+            }
+          } catch (e) {
+            error = e.message;
+          }
+          setTimeout(
+            () =>
+              window.dispatchEvent(
+                new MessageEvent("message", {
+                  data: { id: m.id, result, error },
+                }),
+              ),
+            10,
+          );
+        },
+      });
+    </script>
+    <script nonce="test" src="/media/main.js"></script>
+  </body>
+</html>

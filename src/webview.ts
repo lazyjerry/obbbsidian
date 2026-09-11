@@ -100,7 +100,7 @@ function action(fn: () => Promise<unknown> | unknown) {
   };
 }
 $("app").innerHTML =
-  `<aside id="sidebar"><div class="vault-bar"><select id="source" title="選擇儲存庫" aria-label="選擇儲存庫"></select><span id="vault-name"></span><button id="new" title="新增筆記" aria-label="新增筆記"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H5v18h14V8zM14 3v5h5M8 14h8M12 10v8"/></svg></button><button id="folder" title="新增資料夾" aria-label="新增資料夾"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h7l2 3h9v12H3zM9 15h6M12 12v6"/></svg></button><button id="refresh" title="重新整理" aria-label="重新整理">↻</button><button id="settings" title="儲存庫設定" aria-label="儲存庫設定" aria-expanded="false" aria-controls="vault-menu">⚙</button></div><div id="vault-menu" hidden><button id="choose">加入既有儲存庫…</button><button id="initialize-vault">新增儲存庫…</button><button id="remove-vault">移除目前儲存庫引用</button><button id="reveal">在 Finder 開啟儲存庫</button></div><input id="search" aria-label="搜尋 vault" placeholder="搜尋筆記內容…"><div class="tools"><button id="daily">每日</button><button id="tags">標籤</button><button id="bookmarks">書籤</button></div><div id="tree" role="tree" aria-label="檔案"></div></aside><div id="divider" role="separator" tabindex="0" aria-label="調整檔案欄寬度"></div><main><nav id="tabs"></nav><header><span id="filename">選擇筆記</span><select id="mode" aria-label="編輯模式"><option value="live">Live Preview</option><option value="source">原始碼</option><option value="split">編輯＋預覽</option><option value="read">閱讀</option></select><button id="more">⋯</button></header><div id="toolbar"><button data-wrap="**" title="粗體" aria-label="粗體"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h7a4 4 0 0 1 0 8H6zm0 8h8a4 4 0 0 1 0 8H6z"/></svg></button><button data-wrap="*" title="斜體" aria-label="斜體"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4h8M5 20h8M15 4 9 20"/></svg></button><button data-wrap="==" title="標示" aria-label="標示"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m13 3 8 8-9 9H4v-8zM3 22h18M9 7l8 8"/></svg></button><button data-wrap="[[" data-end="]]" title="連結" aria-label="連結"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m10 13 4-4M8 16l-1 1a4 4 0 0 1-6-6l5-5a4 4 0 0 1 6 0m0 12a4 4 0 0 0 6 0l5-5a4 4 0 0 0-6-6l-1 1"/></svg></button><button id="template" title="範本" aria-label="範本"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h10l4 4v14H5zM14 3v5h5M8 12h8M8 16h6"/></svg></button><button id="attachment" title="附件" aria-label="附件"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m8 13 7-7a3 3 0 0 1 4 4L9 20a5 5 0 0 1-7-7L13 2m-7 13 8-8"/></svg></button><button id="outline" title="大綱／連結" aria-label="大綱／連結"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5h12M9 12h12M9 19h12M3 5h1M3 12h1M3 19h1"/></svg></button><button id="bookmark" title="書籤" aria-label="書籤"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg></button></div><div id="conflict" hidden>磁碟版本已變更，草稿已保留。<button id="compare">比較</button><button id="reload">採用磁碟</button><button id="copy">另存草稿</button></div><div id="body"><div id="editor"></div><article id="preview"></article></div><section id="aux" hidden aria-label="筆記資訊"><div id="aux-header"><span id="aux-title"></span><button id="aux-close" title="關閉資訊區塊" aria-label="關閉資訊區塊">×</button></div><div id="aux-content"></div></section><footer><span id="status">開啟儲存庫中…</span><span id="count"></span></footer><div id="menu" hidden><button id="save">手動保存</button><button id="rename">重新命名</button><button id="delete">移至垃圾桶</button><button id="native">在 VSCode 編輯器開啟</button><button id="trash">開啟垃圾桶</button></div></main>`;
+  `<aside id="sidebar"><div class="vault-bar"><select id="source" title="選擇儲存庫" aria-label="選擇儲存庫"></select><button id="vault-actions" title="儲存庫內操作" aria-label="儲存庫內操作" aria-expanded="false" aria-controls="vault-actions-menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h7l2 3h9v12H3zM9 15h6M12 12v6"/></svg></button><button id="settings" title="儲存庫管理" aria-label="儲存庫管理" aria-expanded="false" aria-controls="vault-menu">⚙</button></div><div id="vault-actions-menu" hidden><button id="new">新增筆記…</button><button id="folder">新增資料夾…</button><button id="refresh">重新整理</button></div><div id="vault-menu" hidden><button id="choose">加入既有儲存庫…</button><button id="initialize-vault">新增儲存庫…</button><button id="remove-vault">移除目前儲存庫引用</button><button id="reveal">在 Finder 開啟儲存庫</button></div><input id="search" aria-label="搜尋 vault" placeholder="搜尋筆記內容…"><div class="tools"><button id="daily">每日</button><button id="tags">標籤</button><button id="bookmarks">書籤</button></div><div id="tree" role="tree" aria-label="檔案"></div></aside><div id="divider" role="separator" tabindex="0" aria-label="調整檔案欄寬度"></div><main><nav id="tabs"></nav><header><span id="filename">選擇筆記</span><select id="mode" aria-label="編輯模式"><option value="live">Live Preview</option><option value="source">原始碼</option><option value="split">編輯＋預覽</option><option value="read">閱讀</option></select><button id="more">⋯</button></header><div id="toolbar"><button data-wrap="**" title="粗體" aria-label="粗體"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h7a4 4 0 0 1 0 8H6zm0 8h8a4 4 0 0 1 0 8H6z"/></svg></button><button data-wrap="*" title="斜體" aria-label="斜體"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4h8M5 20h8M15 4 9 20"/></svg></button><button data-wrap="==" title="標示" aria-label="標示"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m13 3 8 8-9 9H4v-8zM3 22h18M9 7l8 8"/></svg></button><button data-wrap="[[" data-end="]]" title="連結" aria-label="連結"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m10 13 4-4M8 16l-1 1a4 4 0 0 1-6-6l5-5a4 4 0 0 1 6 0m0 12a4 4 0 0 0 6 0l5-5a4 4 0 0 0-6-6l-1 1"/></svg></button><button id="template" title="範本" aria-label="範本"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h10l4 4v14H5zM14 3v5h5M8 12h8M8 16h6"/></svg></button><button id="attachment" title="附件" aria-label="附件"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m8 13 7-7a3 3 0 0 1 4 4L9 20a5 5 0 0 1-7-7L13 2m-7 13 8-8"/></svg></button><button id="outline" title="大綱／連結" aria-label="大綱／連結"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5h12M9 12h12M9 19h12M3 5h1M3 12h1M3 19h1"/></svg></button><button id="bookmark" title="書籤" aria-label="書籤"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg></button></div><div id="conflict" hidden>磁碟版本已變更，草稿已保留。<button id="compare">比較</button><button id="reload">採用磁碟</button><button id="copy">另存草稿</button></div><div id="body"><div id="editor"></div><article id="preview"></article></div><section id="aux" hidden aria-label="筆記資訊"><div id="aux-header"><span id="aux-title"></span><button id="aux-close" title="關閉資訊區塊" aria-label="關閉資訊區塊">×</button></div><div id="aux-content"></div></section><footer><span id="status">開啟儲存庫中…</span><span id="count"></span></footer><div id="menu" hidden><button id="save">手動保存</button><button id="rename">重新命名</button><button id="delete">移至垃圾桶</button><button id="native">在 VSCode 編輯器開啟</button><button id="trash">開啟垃圾桶</button></div></main>`;
 
 // 隱藏非游標行的行內語法，游標進入後回復原始文字，儲存內容不經 HTML 轉換。
 const live = ViewPlugin.fromClass(
@@ -505,10 +505,6 @@ async function initialize(preferred = source) {
     if (!refs.length) select.add(new Option("尚無儲存庫", ""));
     select.value = source;
     select.title = selected?.root || "請透過齒輪加入或新增儲存庫";
-    $("vault-name").textContent = selected
-      ? selected.root.split("/").pop()!
-      : "";
-    $("vault-name").title = selected?.root || "";
     ($("remove-vault") as HTMLButtonElement).disabled =
       !selected || refs.length <= 1;
     $("remove-vault").title = refs.length === 1 ? "至少需保留一個儲存庫" : "";
@@ -535,6 +531,7 @@ async function initialize(preferred = source) {
     select.value = source;
     select.disabled = select.options.length === 1 && !source;
     for (const id of [
+      "vault-actions",
       "new",
       "folder",
       "daily",
@@ -928,16 +925,29 @@ $("source").onchange = action(() =>
   initialize(($("source") as HTMLSelectElement).value),
 );
 function closeSettings() {
+  $("vault-actions-menu").hidden = true;
+  $("vault-actions").setAttribute("aria-expanded", "false");
   $("vault-menu").hidden = true;
   $("settings").setAttribute("aria-expanded", "false");
 }
 $("settings").onclick = () => {
   const open = $("vault-menu").hidden;
+  closeSettings();
   $("vault-menu").hidden = !open;
   $("settings").setAttribute("aria-expanded", String(open));
 };
+$("vault-actions").onclick = () => {
+  const open = $("vault-actions-menu").hidden;
+  closeSettings();
+  $("vault-actions-menu").hidden = !open;
+  $("vault-actions").setAttribute("aria-expanded", String(open));
+};
 document.addEventListener("click", (event) => {
-  if (!(event.target as HTMLElement).closest("#vault-menu,#settings"))
+  if (
+    !(event.target as HTMLElement).closest(
+      "#vault-menu,#settings,#vault-actions-menu,#vault-actions",
+    )
+  )
     closeSettings();
 });
 document.addEventListener("keydown", (event) => {
@@ -967,8 +977,12 @@ $("remove-vault").onclick = action(async () => {
     $("editor").inert = false;
   }
 });
-$("refresh").onclick = action(refresh);
+$("refresh").onclick = action(async () => {
+  closeSettings();
+  await refresh();
+});
 $("new").onclick = action(async () => {
+  closeSettings();
   if (!(await save())) return;
   const data = await rpc("create");
   if (data) {
@@ -977,6 +991,7 @@ $("new").onclick = action(async () => {
   }
 });
 $("folder").onclick = action(async () => {
+  closeSettings();
   await rpc("create", { directory: true });
   await refresh();
 });

@@ -1,3 +1,16 @@
+# 0.2.5 擴充套件圖示與發布
+
+- 新增 resources/icon.png（256×256 PNG），package.json 的 icon 指向此檔；VSIX 內含圖示。
+- TypeScript 建置、格式檢查、13 項單元測試、Chrome UI 回歸與 VSCode Extension Host 整合測試通過。
+- 修正 UI 測試的外部點擊位置：展開選單會遮住搜尋框，改點右側檔名區，仍驗證選單收合；產品收合邏輯未更動。
+- 圖示已檢視；使用中 VSCode 視窗需 Reload Window，實際擴充套件詳細頁尚未人工驗收。
+
+# 0.2.4 儲存庫兩組操作選單
+
+- TypeScript、格式檢查與 UI 回歸：確認移除重複 label，頂部只有儲存庫內操作與管理兩個按鈕，分類與順序符合要求。
+- UI 驗證選單互斥、Escape、點擊外部與操作後收合，新增筆記／資料夾的 RPC 參數，以及空清單停用內部操作但保留管理入口。
+- 新增筆記與資料夾的對話框於此 UI 測試模擬取消；既有 RPC 與後端未修改，本次不重跑單元及 Extension Host 測試。
+
 # 0.2.3 編輯器配色
 
 - UI 測試讀取實際 computed style，確認 Markdown 標題、語言標記、行內程式碼、符號與連結，在 #1E1E1E／#FFFFFF 背景下的對比至少 4.5:1。

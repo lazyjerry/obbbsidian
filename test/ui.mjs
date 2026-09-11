@@ -41,6 +41,47 @@ try {
     "false",
     "no note selected: editor must not accept unsavable text",
   );
+  assert.equal(await page.locator("#vault-name").count(), 0);
+  assert.deepEqual(
+    await page
+      .locator(".vault-bar > button")
+      .evaluateAll((buttons) =>
+        buttons.map((b) => b.getAttribute("aria-label")),
+      ),
+    ["儲存庫內操作", "儲存庫管理"],
+  );
+  await page.locator("#vault-actions").click();
+  assert.deepEqual(
+    await page.locator("#vault-actions-menu button").allTextContents(),
+    ["新增筆記…", "新增資料夾…", "重新整理"],
+  );
+  assert.equal(await page.locator("#vault-actions-menu").isVisible(), true);
+  await page.locator("#settings").click();
+  assert.equal(await page.locator("#vault-actions-menu").isVisible(), false);
+  assert.equal(await page.locator("#vault-menu").isVisible(), true);
+  await page.locator("#vault-actions").click();
+  assert.equal(await page.locator("#vault-menu").isVisible(), false);
+  await page.keyboard.press("Escape");
+  assert.equal(await page.locator("#vault-actions-menu").isVisible(), false);
+  assert.equal(
+    await page.locator("#vault-actions").getAttribute("aria-expanded"),
+    "false",
+  );
+  for (const id of ["new", "folder", "refresh"]) {
+    await page.locator("#vault-actions").click();
+    await page.locator("#" + id).click();
+    await page.waitForFunction(
+      () => document.querySelector("#vault-actions-menu").hidden,
+    );
+  }
+  await page.waitForFunction(
+    () =>
+      window.requests.some((m) => m.type === "create" && !m.directory) &&
+      window.requests.some((m) => m.type === "create" && m.directory),
+  );
+  await page.locator("#vault-actions").click();
+  await page.locator("#filename").click();
+  assert.equal(await page.locator("#vault-actions-menu").isVisible(), false);
   await page.locator("#bookmarks").click();
   await page.locator("#aux").waitFor({ state: "visible" });
   await page.locator("#bookmarks").click();
@@ -304,6 +345,8 @@ try {
       document.querySelector("#new").disabled,
   );
   assert.equal(await page.locator("#new").isDisabled(), true);
+  assert.equal(await page.locator("#vault-actions").isDisabled(), true);
+  assert.equal(await page.locator("#settings").isEnabled(), true);
   assert.equal(await page.locator("#source").isDisabled(), true);
   assert.equal(
     await page.locator(".cm-content").getAttribute("contenteditable"),

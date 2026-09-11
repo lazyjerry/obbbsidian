@@ -2,9 +2,10 @@
   "name": "obbbsidian",
   "displayName": "obbbsidian",
   "description": "Obsidian-compatible local Markdown vaults in a two-column VS Code panel.",
-  "version": "0.2.3",
+  "version": "0.2.5",
   "publisher": "workjerry",
   "license": "MIT",
+  "icon": "resources/icon.png",
   "engines": {
     "vscode": "^1.96.0"
   },

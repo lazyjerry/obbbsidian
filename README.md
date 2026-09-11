@@ -4,7 +4,13 @@
 
 **本套件相容 Markdown vault，並非 Obsidian 完整重製。** 不載入或安裝 Obsidian 外掛。Live Preview、Canvas、Bases 與部分核心功能有差異，請先看 [相容性與替代操作](docs/COMPATIBILITY.md)。
 
-## 0.2.3 更新
+## 0.2.5 更新
+
+新增紫色筆記圖示，顯示於 VSCode 擴充套件清單與詳細頁。
+
+## 0.2.4 更新
+
+左欄頂部只保留儲存庫下拉選單與兩個按鈕：資料夾圖示「儲存庫內操作」提供新增筆記、新增資料夾與重新整理；齒輪「儲存庫管理」提供加入、新增儲存庫、移除引用與 Finder。移除重複名稱，讓下拉選單使用剩餘寬度。
 
 改善深色模式的 Markdown 配色：標題淺藍、連結與語言標記亮藍、程式碼柔橘、語法符號中灰。行號與選取背景跟隨 VSCode 主題，切換明暗模式立即生效。
 
@@ -14,10 +20,10 @@
 
 ## 目前交付狀態
 
-2026-09-11 建置 `workjerry.obbbsidian@0.2.3`。執行 `obbbsidian: Open Vault Panel` 即可開啟；若頁籤尚未出現，請執行 `Developer: Reload Window`。
+2026-09-11 建置 `workjerry.obbbsidian@0.2.5`。執行 `obbbsidian: Open Vault Panel` 即可開啟；若頁籤尚未出現，請執行 `Developer: Reload Window`。
 
-- 發布檔：專案根目錄的 `obbbsidian-0.2.3.vsix`。
-- 校驗檔：`obbbsidian-0.2.3.vsix.sha256`，可用 `shasum -a 256 -c obbbsidian-0.2.3.vsix.sha256` 檢查。
+- 發布檔：專案根目錄的 `obbbsidian-0.2.5.vsix`。
+- 校驗檔：`obbbsidian-0.2.5.vsix.sha256`，可用 `shasum -a 256 -c obbbsidian-0.2.5.vsix.sha256` 檢查。
 - 已通過：TypeScript 建置、格式檢查、13 項單元測試、Chrome UI 自動測試與 VSCode Extension Host 整合測試。
 - 尚待驗收：Obsidian GUI 與真實 vault 的雙向操作、大型 vault、跨裝置同步，以及檔案選擇器／垃圾桶／附件操作的人工測試。
 
@@ -25,7 +31,7 @@
 
 ## 開始使用
 
-1. 安裝 `obbbsidian-0.2.3.vsix`，必要時執行 `Developer: Reload Window`。
+1. 安裝 `obbbsidian-0.2.5.vsix`，必要時執行 `Developer: Reload Window`。
 2. 執行 `obbbsidian: Open Vault Panel`，或點底部 **obbbsidian** 頁籤。
 3. 首次使用會自動建立「筆記」儲存庫，可直接新增筆記。也可按 ⚙ →「加入既有儲存庫…」選擇 **vault 根目錄**，或選「新增儲存庫…」建立資料夾；之後由左上角下拉選單切換。不要選 `.obsidian` 子目錄。
 4. 點選 Markdown 檔案開始編輯。停止輸入約 650 ms 自動儲存，`Cmd/Ctrl+S` 或右側 `⋯` →「手動保存」可立即儲存。
@@ -76,7 +82,7 @@ npm test
 npm run test:ui
 npm run test:integration
 npm run package:vsix
-code --profile <名稱> --install-extension ./obbbsidian-0.2.3.vsix --force
+code --profile <名稱> --install-extension ./obbbsidian-0.2.5.vsix --force
 ```
 
 UI 測試預設使用 macOS Google Chrome；整合測試使用 `/Applications/Visual Studio Code.app` 並建立獨立暫存 profile，不碰使用中的 vault。移到其他平台時調整測試 executable path。

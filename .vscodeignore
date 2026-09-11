@@ -1,0 +1,13 @@
+.git/**
+node_modules/**
+src/**
+test/**
+scripts/**
+.tsconfig*
+tsconfig.json
+package-lock.json
+.gitignore
+.test-results/**
+docs/working-notes-skill/**
+*.vsix
+*.vsix.sha256

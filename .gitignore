@@ -1,0 +1,8 @@
+node_modules/
+out/
+*.vsix
+media/main.js
+media/main.css
+media/fonts/
+.test-results/
+.DS_Store

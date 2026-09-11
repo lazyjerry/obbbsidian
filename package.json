@@ -1,0 +1,149 @@
+{
+  "name": "obbbsidian",
+  "displayName": "obbbsidian",
+  "description": "Obsidian-compatible local Markdown vaults in a two-column VS Code panel.",
+  "version": "0.2.3",
+  "publisher": "workjerry",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "obsidian",
+    "markdown",
+    "vault",
+    "notes"
+  ],
+  "extensionKind": [
+    "ui"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "panel": [
+        {
+          "id": "obbbsidian",
+          "title": "obbbsidian",
+          "icon": "resources/vault.svg"
+        }
+      ]
+    },
+    "views": {
+      "obbbsidian": [
+        {
+          "type": "webview",
+          "id": "obbbsidian.vault",
+          "name": "obbbsidian"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "obbbsidian.open",
+        "title": "obbbsidian: Open Vault Panel"
+      },
+      {
+        "command": "obbbsidian.format.bold",
+        "title": "粗體"
+      },
+      {
+        "command": "obbbsidian.format.italic",
+        "title": "斜體"
+      },
+      {
+        "command": "obbbsidian.format.highlight",
+        "title": "標示"
+      },
+      {
+        "command": "obbbsidian.format.link",
+        "title": "連結"
+      }
+    ],
+    "configuration": {
+      "title": "obbbsidian",
+      "properties": {
+        "obbbsidian.dataFolder": {
+          "type": "string",
+          "default": "",
+          "scope": "machine-overridable",
+          "description": "舊版儲存庫路徑；僅於首次升級時匯入裝置共用清單。",
+          "deprecationMessage": "請改用 obbbsidian 面板齒輪管理儲存庫；清單存於本機 ~/.obbbsidian/vaults/，不再由工作區設定控制。"
+        },
+        "obbbsidian.privateDataFolder": {
+          "type": "string",
+          "default": "",
+          "scope": "machine-overridable",
+          "description": "舊版儲存庫路徑；僅於首次升級時匯入裝置共用清單。",
+          "deprecationMessage": "請改用 obbbsidian 面板齒輪管理儲存庫；清單存於本機 ~/.obbbsidian/vaults/，不再由工作區設定控制。"
+        }
+      }
+    },
+    "menus": {
+      "webview/context": [
+        {
+          "command": "obbbsidian.format.bold",
+          "when": "webviewId == 'obbbsidian.vault' && webviewSection == 'markdownEditor'",
+          "group": "obbbsidianFormat@1"
+        },
+        {
+          "command": "obbbsidian.format.italic",
+          "when": "webviewId == 'obbbsidian.vault' && webviewSection == 'markdownEditor'",
+          "group": "obbbsidianFormat@2"
+        },
+        {
+          "command": "obbbsidian.format.highlight",
+          "when": "webviewId == 'obbbsidian.vault' && webviewSection == 'markdownEditor'",
+          "group": "obbbsidianFormat@3"
+        },
+        {
+          "command": "obbbsidian.format.link",
+          "when": "webviewId == 'obbbsidian.vault' && webviewSection == 'markdownEditor'",
+          "group": "obbbsidianFormat@4"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "npm run typecheck && node scripts/build.mjs",
+    "test": "tsx --test test/*.test.ts",
+    "test:ui": "node test/ui.mjs",
+    "test:integration": "node test/integration.cjs",
+    "vscode:prepublish": "npm run build",
+    "package:vsix": "vsce package --no-dependencies --allow-missing-repository --no-rewrite-relative-links",
+    "format:check": "prettier --check \"src/**/*.ts\" \"test/*.{ts,mjs,cjs,html}\" \"scripts/*.mjs\" package.json tsconfig.json media/style.css"
+  },
+  "dependencies": {
+    "@codemirror/autocomplete": "^6.18.0",
+    "@codemirror/commands": "^6.8.0",
+    "@codemirror/lang-markdown": "^6.3.0",
+    "@codemirror/language": "^6.10.0",
+    "@codemirror/state": "^6.5.0",
+    "@codemirror/view": "^6.36.0",
+    "@lezer/highlight": "^1.2.3",
+    "codemirror": "^6.0.1",
+    "dompurify": "^3.2.0",
+    "katex": "^0.16.21",
+    "markdown-it": "^14.1.0",
+    "markdown-it-footnote": "^4.0.0",
+    "markdown-it-mark": "^4.0.0",
+    "markdown-it-task-lists": "^2.1.1",
+    "mermaid": "^11.4.0",
+    "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "@types/markdown-it": "^14.1.2",
+    "@types/node": "^22.0.0",
+    "@types/vscode": "1.96.0",
+    "@vscode/test-electron": "^3.0.0",
+    "@vscode/vsce": "^3.6.0",
+    "esbuild": "^0.25.0",
+    "playwright": "^1.51.0",
+    "prettier": "^3.9.6",
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.0"
+  }
+}

@@ -1,3 +1,9 @@
+# 0.2.6 webview bundle 壓縮
+
+- `scripts/build.mjs` 的 webview build 加上 `minify: true`；`media/main.js` 9,657,768 → 4,355,296 bytes，VSIX 2,835,331 → 2,258,637 bytes。
+- TypeScript 建置、13 項單元測試、Chrome UI 回歸與 VSCode Extension Host 整合測試通過。
+- 首次 UI 測試在衝突提示步驟逾時一次；未 minify 的對照組通過，minify 版本之後每次都通過，且等待 3 秒即可看到衝突提示，判斷為冷啟動時序，未改測試。
+
 # 0.2.5 擴充套件圖示與發布
 
 - 新增 resources/icon.png（256×256 PNG），package.json 的 icon 指向此檔；VSIX 內含圖示。

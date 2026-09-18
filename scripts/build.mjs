@@ -16,6 +16,7 @@ const ui = await build({
   platform: "browser",
   format: "iife",
   target: "es2022",
+  minify: true,
   outfile: "media/main.js",
   metafile: true,
   loader: { ".woff": "file", ".woff2": "file", ".ttf": "file" },

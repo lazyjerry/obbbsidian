@@ -19,7 +19,7 @@ import DOMPurify from "dompurify";
 import mermaid from "mermaid";
 import katex from "katex";
 import { parse as parseYaml } from "yaml";
-import { renderer, renderMarkdown } from "./render";
+import { EXTERNAL_LINK, renderer, renderMarkdown } from "./render";
 import type { VaultReference } from "./registry";
 import type { Entry } from "./vault";
 import "katex/dist/katex.min.css";
@@ -54,6 +54,32 @@ const states = new Map<string, EditorState>();
 const tabs: string[] = [];
 const modeConfig = new Compartment();
 const $ = (id: string) => document.getElementById(id)!;
+// 筆記內容與面板 UI 共用同一份 DOM：禁止 style 以免覆蓋介面（點擊劫持），
+// id／name 由 DOMPurify 加上 user-content- 前綴，避免與 #status 等 UI 元素衝突。
+const PURIFY = {
+  ADD_ATTR: ["data-note", "data-embed", "target"],
+  FORBID_TAGS: ["style", "iframe", "object", "form"],
+  FORBID_ATTR: ["style"],
+  SANITIZE_NAMED_PROPS: true,
+  // DOMPurify 預設清單再加上 obsidian:，開啟前由 host 端確認。
+  ALLOWED_URI_REGEXP:
+    /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|matrix|obsidian):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+};
+const contentId = (id: string) => document.getElementById("user-content-" + id);
+function renderInto(el: HTMLElement, text: string) {
+  el.innerHTML = DOMPurify.sanitize(renderMarkdown(md, text), PURIFY);
+  // 清除原文的 inline style 後，僅重建由 KaTeX 產生的排版樣式。
+  for (const math of el.querySelectorAll(".katex")) {
+    const formula = math.querySelector(
+      'annotation[encoding="application/x-tex"]',
+    )?.textContent;
+    if (formula)
+      math.outerHTML = katex.renderToString(formula, {
+        throwOnError: false,
+        trust: false,
+      });
+  }
+}
 function rpc(type: string, data: Record<string, unknown> = {}): Promise<any> {
   const id = ++nextId;
   return new Promise((resolve, reject) => {
@@ -643,7 +669,7 @@ async function loadFile(file: string, anchor?: string) {
       });
     }
     await preview();
-    document.getElementById(anchor)?.scrollIntoView();
+    contentId(anchor)?.scrollIntoView();
   }
 }
 async function showAttachment(file: string) {
@@ -691,23 +717,7 @@ async function preview() {
     renderBase(text, article);
     return;
   }
-  const html = DOMPurify.sanitize(renderMarkdown(md, text), {
-    ADD_ATTR: ["data-note", "data-embed", "target"],
-    FORBID_TAGS: ["style", "iframe", "object", "form"],
-    FORBID_ATTR: ["style"],
-  });
-  article.innerHTML = html;
-  // 清除原文的 inline style 後，僅重建由 KaTeX 產生的排版樣式。
-  for (const math of article.querySelectorAll(".katex")) {
-    const formula = math.querySelector(
-      'annotation[encoding="application/x-tex"]',
-    )?.textContent;
-    if (formula)
-      math.outerHTML = katex.renderToString(formula, {
-        throwOnError: false,
-        trust: false,
-      });
-  }
+  renderInto(article, text);
   for (const input of article.querySelectorAll("input")) {
     const marker = document.createElement("span");
     marker.textContent = (input as HTMLInputElement).checked ? "☑ " : "☐ ";
@@ -760,10 +770,7 @@ async function preview() {
             } else body = "";
           }
         }
-        el.innerHTML = DOMPurify.sanitize(renderMarkdown(md, body), {
-          FORBID_TAGS: ["style", "iframe", "object"],
-          FORBID_ATTR: ["style"],
-        });
+        renderInto(el, body);
         el.classList.add("note-embed");
       } else {
         const uri = await rpc("resource", { path: found.path });
@@ -863,8 +870,7 @@ function renderCanvas(text: string, parent: HTMLElement) {
         width: n.width + "px",
         height: n.height + "px",
       });
-      if (n.type === "text")
-        card.innerHTML = DOMPurify.sanitize(renderMarkdown(md, n.text || ""));
+      if (n.type === "text") renderInto(card, n.text || "");
       else {
         card.textContent = n.file || n.url || n.label || n.type;
         if (n.file) {
@@ -900,15 +906,17 @@ $("preview").addEventListener("click", (event) => {
   if (!el) return;
   event.preventDefault();
   void (async () => {
-    const target = el.dataset.note || el.getAttribute("href") || "";
-    if (/^(https?:|mailto:|obsidian:)/.test(target)) {
-      await rpc("external", { url: target });
+    const note = el.dataset.note;
+    // data-note 可由筆記原始 HTML 或 canvas 任意指定，只當 vault 內部連結；
+    // 外部開啟只接受經 DOMPurify 驗證的 a[href]。
+    const href = el.matches("a") ? el.getAttribute("href") || "" : "";
+    if (!note && EXTERNAL_LINK.test(href)) {
+      await rpc("external", { url: href });
       return;
     }
-    if (target.startsWith("#") && !el.dataset.note) {
-      document
-        .getElementById(decodeURIComponent(target.slice(1)))
-        ?.scrollIntoView();
+    const target = note || href;
+    if (target.startsWith("#") && !note) {
+      contentId(decodeURIComponent(target.slice(1)))?.scrollIntoView();
       return;
     }
     const found = await rpc("link", { target, path: current });

@@ -11,6 +11,7 @@ export const escapeHtml = (s: string) =>
         c
       ]!,
   );
+export const EXTERNAL_LINK = /^(https?:|mailto:|obsidian:)/;
 export function renderer() {
   const md = new MarkdownIt({ html: true, linkify: true, breaks: true })
     .use(footnote)
@@ -27,9 +28,12 @@ export function renderer() {
       const token = state.push("html_inline", "", 0);
       if (wiki) {
         const [target, label] = wiki[2].split("|");
+        // 外部網址改走 href，交給 DOMPurify 驗證協定；data-note 只代表 vault 內部連結。
         token.content = wiki[1]
           ? `<span class="embed" data-embed="${escapeHtml(target)}">${escapeHtml(label || target)}</span>`
-          : `<a href="#" data-note="${escapeHtml(target)}">${escapeHtml(label || target)}</a>`;
+          : EXTERNAL_LINK.test(target)
+            ? `<a href="${escapeHtml(target)}">${escapeHtml(label || target)}</a>`
+            : `<a href="#" data-note="${escapeHtml(target)}">${escapeHtml(label || target)}</a>`;
       } else if (math) {
         try {
           token.content = katex.renderToString(math[1], {

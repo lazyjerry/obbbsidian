@@ -5,7 +5,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
 import { randomUUID } from "node:crypto";
-import { Vault, flatten, revision } from "./vault";
+import { Vault, flatten, pruneDrafts, pruneRecovery, revision } from "./vault";
 
 import { VaultRegistry } from "./registry";
 export function activate(context: vscode.ExtensionContext) {
@@ -35,6 +35,7 @@ class Panel implements vscode.WebviewViewProvider {
   );
   private vaults = new Map<string, Vault>();
   private operations: Promise<unknown> = Promise.resolve();
+  private pruned?: Promise<unknown>;
   constructor(private context: vscode.ExtensionContext) {}
   format(format: string) {
     return this.view?.webview.postMessage({ event: "format", format });
@@ -68,6 +69,14 @@ class Panel implements vscode.WebviewViewProvider {
     return added;
   }
   private async initialize() {
+    // 在第一個請求前完成，避免與之後的草稿寫入交錯。
+    this.pruned ??= Promise.all([
+      pruneRecovery(
+        path.join(this.context.globalStorageUri.fsPath, "recovery"),
+      ),
+      pruneDrafts(path.join(this.context.globalStorageUri.fsPath, "drafts")),
+    ]).catch(() => {});
+    await this.pruned;
     const config = vscode.workspace.getConfiguration("obbbsidian");
     const legacy = ["shared", "private"].map((legacyId) => {
       const key = legacyId === "shared" ? "dataFolder" : "privateDataFolder";
@@ -113,7 +122,12 @@ class Panel implements vscode.WebviewViewProvider {
     const uri = (p: string) =>
       webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, p));
     const nonce = randomUUID();
-    webview.html = `<!doctype html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} data: https:; media-src ${webview.cspSource}; font-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';"><link rel="stylesheet" href="${uri("media/style.css")}"><link rel="stylesheet" href="${uri("media/main.css")}"></head><body><div id="app"></div><script nonce="${nonce}" src="${uri("media/main.js")}"></script></body></html>`;
+    const remoteImages = vscode.workspace
+      .getConfiguration("obbbsidian")
+      .get<boolean>("allowRemoteImages", true)
+      ? " https:"
+      : "";
+    webview.html = `<!doctype html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} data:${remoteImages}; media-src ${webview.cspSource}; font-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';"><link rel="stylesheet" href="${uri("media/style.css")}"><link rel="stylesheet" href="${uri("media/main.css")}"></head><body><div id="app"></div><script nonce="${nonce}" src="${uri("media/main.js")}"></script></body></html>`;
     const sub = webview.onDidReceiveMessage((message) => {
       const task = this.operations
         .catch(() => {})
@@ -191,7 +205,12 @@ class Panel implements vscode.WebviewViewProvider {
       const temp = target + ".tmp";
       await fs.writeFile(
         temp,
-        JSON.stringify({ text: m.text, revision: m.revision }),
+        JSON.stringify({
+          text: m.text,
+          revision: m.revision,
+          root: vault.root,
+          path: m.path,
+        }),
         { mode: 0o600 },
       );
       await fs.rename(temp, target);
@@ -263,6 +282,16 @@ class Panel implements vscode.WebviewViewProvider {
       const uri = vscode.Uri.parse(m.url);
       if (!["https", "http", "mailto", "obsidian"].includes(uri.scheme))
         throw new Error("不支援此連結協定。");
+      // obsidian: 會交給其他應用程式執行動作，連結文字可能與實際目標不同，先讓使用者看完整 URI。
+      if (uri.scheme === "obsidian") {
+        const open = "開啟";
+        const answer = await vscode.window.showWarningMessage(
+          "要開啟 Obsidian 連結嗎？",
+          { modal: true, detail: uri.toString(true) },
+          open,
+        );
+        if (answer !== open) return false;
+      }
       return vscode.env.openExternal(uri);
     }
     if (m.type === "native") {

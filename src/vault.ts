@@ -15,6 +15,67 @@ export class Conflict extends Error {
     super("檔案已被外部修改；請比較版本，或另存副本。");
   }
 }
+export const RECOVERY_KEEP = 50;
+export const RECOVERY_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
+// 檔名帶筆記鍵，清理時不必逐一讀取 JSON 就能分組。
+const noteKey = (root: string, relative: string) =>
+  revision(root + "\0" + relative).slice(0, 16);
+export async function pruneRecovery(dir: string, now = Date.now()) {
+  let names: string[];
+  try {
+    names = await fs.readdir(dir);
+  } catch {
+    return;
+  }
+  const groups = new Map<string, { name: string; time: number }[]>();
+  for (const name of names) {
+    // 舊版檔名沒有筆記鍵，只套用天數上限。
+    const m = /^(\d+)-(?:([0-9a-f]{16})-)?[0-9a-f-]{36}\.json$/.exec(name);
+    if (!m) continue;
+    const time = Number(m[1]);
+    if (now - time > RECOVERY_MAX_AGE)
+      await fs.rm(path.join(dir, name), { force: true });
+    else if (m[2])
+      groups.set(m[2], [...(groups.get(m[2]) ?? []), { name, time }]);
+  }
+  for (const list of groups.values())
+    for (const { name } of list
+      .sort((a, b) => b.time - a.time)
+      .slice(RECOVERY_KEEP))
+      await fs.rm(path.join(dir, name), { force: true });
+}
+// 草稿是使用者唯一的未儲存內容：只刪「對應檔案確定已不存在」或「內容與磁碟相同」者，
+// 其餘（舊格式、儲存庫離線、讀取失敗）一律保留。
+export async function pruneDrafts(dir: string) {
+  let names: string[];
+  try {
+    names = await fs.readdir(dir);
+  } catch {
+    return;
+  }
+  for (const name of names) {
+    if (!name.endsWith(".json")) continue;
+    const file = path.join(dir, name);
+    try {
+      const raw = await fs.readFile(file, "utf8");
+      const draft = JSON.parse(raw);
+      if (typeof draft.root !== "string" || typeof draft.path !== "string")
+        continue;
+      if (!(await fs.stat(draft.root)).isDirectory()) continue;
+      let stale: boolean;
+      try {
+        stale =
+          (await new Vault(draft.root, "").read(draft.path)).text ===
+          draft.text;
+      } catch (e) {
+        stale = (e as NodeJS.ErrnoException).code === "ENOENT";
+      }
+      // 其他視窗可能剛寫入新草稿；內容變了就不刪。
+      if (stale && (await fs.readFile(file, "utf8")) === raw)
+        await fs.rm(file, { force: true });
+    } catch {}
+  }
+}
 export function contained(root: string, file: string) {
   const r = path.relative(root, file);
   return (
@@ -150,7 +211,10 @@ export class Vault {
         if (bytes.equals(previous)) return { revision: expected };
         await fs.mkdir(this.recovery, { recursive: true });
         await fs.writeFile(
-          path.join(this.recovery, `${Date.now()}-${randomUUID()}.json`),
+          path.join(
+            this.recovery,
+            `${Date.now()}-${noteKey(this.root, relative)}-${randomUUID()}.json`,
+          ),
           JSON.stringify({
             root: this.root,
             path: relative,
@@ -173,6 +237,8 @@ export class Vault {
         } finally {
           await fs.rm(temp, { force: true });
         }
+        // 清理失敗不可讓已完成的儲存回報錯誤。
+        await pruneRecovery(this.recovery).catch(() => {});
         return { revision: revision(bytes) };
       });
     this.queue = task;

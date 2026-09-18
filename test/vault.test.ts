@@ -3,7 +3,16 @@ import assert from "node:assert/strict";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { Vault, Conflict, flatten } from "../src/vault";
+import { randomUUID } from "node:crypto";
+import {
+  Vault,
+  Conflict,
+  flatten,
+  pruneDrafts,
+  pruneRecovery,
+  RECOVERY_KEEP,
+  RECOVERY_MAX_AGE,
+} from "../src/vault";
 import { renderer, renderMarkdown } from "../src/render";
 async function fixture() {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "obb-test-"));
@@ -183,6 +192,108 @@ test("first note initializes missing metadata and explicit initialization preser
       await fs.readFile(path.join(dir, ".obsidian/appearance.json"), "utf8"),
       "{}\n",
     );
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("wiki links to URLs become sanitizable hrefs; data-note stays internal", () => {
+  const html = renderMarkdown(
+    renderer(),
+    "[[https://example.com/a|site]] [[obsidian://open?vault=v]] [[Note#Heading]]\n",
+  );
+  assert.match(html, /<a href="https:\/\/example.com\/a">site<\/a>/);
+  assert.match(html, /<a href="obsidian:\/\/open\?vault=v">/);
+  assert.doesNotMatch(html, /data-note="(https?|obsidian):/);
+  assert.match(html, /data-note="Note#Heading"/);
+});
+
+test("recovery keeps the newest copies per note and drops expired ones", async () => {
+  const { dir, vault } = await fixture();
+  try {
+    for (const file of ["a.md", "b.md"]) {
+      await vault.create(file, "0");
+      await vault.save(file, "1", (await vault.read(file)).revision);
+    }
+    const saved = await fs.readdir(vault.recovery);
+    const keys = saved.map(
+      (name) => /^\d+-([0-9a-f]{16})-[0-9a-f-]{36}\.json$/.exec(name)?.[1],
+    );
+    assert.equal(keys.length, 2);
+    assert.ok(keys[0] && keys[1] && keys[0] !== keys[1]);
+    const now = Date.now() + 1000;
+    const synthetic = (time: number, key = "") =>
+      `${time}-${key ? key + "-" : ""}${randomUUID()}.json`;
+    const aKey = keys[0]!;
+    // 同一筆記再放 RECOVERY_KEEP + 5 份較舊的副本；加上實際儲存的那份，應只留最新的 RECOVERY_KEEP 份。
+    const old: string[] = [];
+    for (let i = 1; i <= RECOVERY_KEEP + 5; i++) {
+      old.push(synthetic(now - i * 1000, aKey));
+      await fs.writeFile(path.join(vault.recovery, old.at(-1)!), "{}");
+    }
+    // 舊版檔名（無筆記鍵）只受天數限制。
+    const legacyOld = synthetic(now - RECOVERY_MAX_AGE - 1000);
+    const legacyNew = synthetic(now);
+    for (const name of [legacyOld, legacyNew])
+      await fs.writeFile(path.join(vault.recovery, name), "{}");
+    await pruneRecovery(vault.recovery, now);
+    const names = await fs.readdir(vault.recovery);
+    assert.deepEqual(
+      old.map((name) => names.includes(name)),
+      old.map((_, i) => i < RECOVERY_KEEP - 1),
+    );
+    for (const name of saved) assert.ok(names.includes(name));
+    assert.equal(names.includes(legacyOld), false);
+    assert.equal(names.includes(legacyNew), true);
+    await pruneRecovery(vault.recovery, now + RECOVERY_MAX_AGE + 60_000);
+    assert.deepEqual(await fs.readdir(vault.recovery), []);
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("draft cleanup removes only drafts that are saved or whose note is gone", async () => {
+  const { dir, vault } = await fixture();
+  const drafts = path.join(dir, "drafts");
+  await fs.mkdir(drafts);
+  const write = (name: string, data: object) =>
+    fs.writeFile(path.join(drafts, name), JSON.stringify(data));
+  try {
+    await vault.create("unsaved.md", "disk");
+    await vault.create("saved.md", "same");
+    await write("unsaved.json", {
+      text: "unsaved edit",
+      revision: "r",
+      root: vault.root,
+      path: "unsaved.md",
+    });
+    await write("saved.json", {
+      text: "same",
+      revision: "r",
+      root: vault.root,
+      path: "saved.md",
+    });
+    await write("deleted.json", {
+      text: "orphan",
+      revision: "r",
+      root: vault.root,
+      path: "deleted.md",
+    });
+    await write("offline.json", {
+      text: "vault unavailable",
+      revision: "r",
+      root: path.join(dir, "unmounted"),
+      path: "note.md",
+    });
+    await write("legacy.json", { text: "old format", revision: "r" });
+    await fs.writeFile(path.join(drafts, "broken.json"), "{");
+    await pruneDrafts(drafts);
+    assert.deepEqual((await fs.readdir(drafts)).sort(), [
+      "broken.json",
+      "legacy.json",
+      "offline.json",
+      "unsaved.json",
+    ]);
   } finally {
     await fs.rm(dir, { recursive: true, force: true });
   }

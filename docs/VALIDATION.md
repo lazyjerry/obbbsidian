@@ -1,3 +1,11 @@
+# 0.2.7 安全性修正
+
+- 單元測試 13 → 16 項：wikilink 網址改輸出 `href`、`data-note` 不含外部協定；復原版本每筆記保留 50 份與 30 天上限（含舊檔名）；草稿清理只刪已刪除筆記或內容與磁碟相同者，保留未儲存、舊格式、儲存庫離線與損毀的草稿。
+- Chrome UI：惡意筆記 `# status`、`id="menu"`、`name="count"` 不影響面板元件；`<style>`、`style` 屬性被移除；`data-note="obsidian://…"`、`data-note="https://…"` 不送出 external；Markdown 連結、`[[https://…]]`、`obsidian://` 仍送出 external。`[jump](#Section)`、`[[#Section]]`、註腳 id、大綱跳轉、callout、KaTeX、wikilink 跳轉維持正常。惡意 Canvas 卡片的樣式被移除、公式照常顯示，檔案節點 `obsidian://` 只走內部連結。
+- 以 0.2.6 原始碼跑新版 UI 測試，於面板 id 衝突檢查失敗；惡意 Canvas 的 `<style>body{display:none}</style>` 讓整個面板隱藏，修正後通過。
+- Extension Host：草稿帶 root／path，啟動清理移除已刪除筆記的草稿並保留未儲存草稿；`obsidian:` 以 modal 顯示完整 URI，取消時不開啟，確認後才開啟；`https`／`mailto` 不詢問；`javascript:`、`file:` 拒絕。`allowRemoteImages` 預設 CSP 含 `https:`，關閉後移除；三項設定皆為 application scope，`untrustedWorkspaces.supported` 為 false。
+- Mermaid SVG 維持 SVG 專用清理設定（保留圖表所需的 `<style>` 與 id 參照）；以 `themeCSS` 指令嘗試讓圖表 `position: fixed` 未成功。
+
 # 0.2.6 webview bundle 壓縮
 
 - `scripts/build.mjs` 的 webview build 加上 `minify: true`；`media/main.js` 9,657,768 → 4,355,296 bytes，VSIX 2,835,331 → 2,258,637 bytes。

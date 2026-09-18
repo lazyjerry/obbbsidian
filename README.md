@@ -4,6 +4,17 @@
 
 **本套件相容 Markdown vault，並非 Obsidian 完整重製。** 不載入或安裝 Obsidian 外掛。Live Preview、Canvas、Bases 與部分核心功能有差異，請先看 [相容性與替代操作](docs/COMPATIBILITY.md)。
 
+## 0.2.7 更新
+
+安全性修正，一般編輯與瀏覽操作不變：
+
+- 筆記、嵌入與 Canvas 卡片的 HTML 一律清除 `<style>` 與 `style` 屬性，惡意檔案無法用透明圖層蓋住面板；Canvas 卡片中的公式照常顯示。
+- 預覽內容的 `id` 加上 `user-content-` 前綴，筆記標題（例如 `# status`）不再與面板元件衝突；大綱、`[[#標題]]`、`[[筆記#標題]]`、`[標題](#標題)` 與註腳跳轉照常可用。
+- 外部連結只從一般 `<a href>` 開啟：`[文字](https://…)` 與 `[[https://…]]` 行為不變；以 HTML 屬性或 Canvas 檔案節點偽裝的網址只當成 vault 內部連結。開啟 `obsidian://` 連結前會跳出確認視窗並顯示完整網址。
+- 新增 `obbbsidian.allowRemoteImages` 設定，說明見「設定」。
+- 舊路徑設定 `obbbsidian.dataFolder`／`privateDataFolder` 不再接受工作區覆寫；未受信任的工作區（Restricted Mode）停用本套件。
+- 復原版本每份筆記保留最近 50 份，超過 30 天刪除；草稿只清除「對應筆記已刪除」或「內容已與磁碟相同」的項目，未儲存草稿保留。
+
 ## 0.2.6 更新
 
 webview bundle 改為 minify，`media/main.js` 由 9.66 MB 降至 4.36 MB，VSIX 由 2.84 MB 降至 2.26 MB。功能不變。
@@ -24,18 +35,18 @@ webview bundle 改為 minify，`media/main.js` 由 9.66 MB 降至 4.36 MB，VSIX
 
 ## 目前交付狀態
 
-2026-09-19 建置 `workjerry.obbbsidian@0.2.6`。執行 `obbbsidian: Open Vault Panel` 即可開啟；若頁籤尚未出現，請執行 `Developer: Reload Window`。
+2026-09-19 建置 `workjerry.obbbsidian@0.2.7`。執行 `obbbsidian: Open Vault Panel` 即可開啟；若頁籤尚未出現，請執行 `Developer: Reload Window`。
 
-- 發布檔：專案根目錄的 `obbbsidian-0.2.6.vsix`（不進版控）。
-- 校驗檔：`obbbsidian-0.2.6.vsix.sha256`，可用 `shasum -a 256 -c obbbsidian-0.2.6.vsix.sha256` 檢查。
-- 已通過：TypeScript 建置、格式檢查、13 項單元測試、Chrome UI 自動測試與 VSCode Extension Host 整合測試。
+- 發布檔：專案根目錄的 `obbbsidian-0.2.7.vsix`（不進版控）。
+- 校驗檔：`obbbsidian-0.2.7.vsix.sha256`，可用 `shasum -a 256 -c obbbsidian-0.2.7.vsix.sha256` 檢查。
+- 已通過：TypeScript 建置、格式檢查、16 項單元測試、Chrome UI 自動測試與 VSCode Extension Host 整合測試。
 - 尚待驗收：Obsidian GUI 與真實 vault 的雙向操作、大型 vault、跨裝置同步，以及檔案選擇器／垃圾桶／附件操作的人工測試。
 
 尚未達到完整 Obsidian 功能一致：Live Preview 僅實作部分語法呈現；Canvas 提供節點檢視與 JSON 編輯；Bases 提供 YAML 定義檢視，未執行資料庫檢視。完整差異見 [相容性與替代操作](docs/COMPATIBILITY.md)，測試範圍見 [驗證紀錄](docs/VALIDATION.md)。
 
 ## 開始使用
 
-1. 安裝 `obbbsidian-0.2.6.vsix`，必要時執行 `Developer: Reload Window`。
+1. 安裝 `obbbsidian-0.2.7.vsix`，必要時執行 `Developer: Reload Window`。
 2. 執行 `obbbsidian: Open Vault Panel`，或點底部 **obbbsidian** 頁籤。
 3. 首次使用會自動建立「筆記」儲存庫，可直接新增筆記。也可按 ⚙ →「加入既有儲存庫…」選擇 **vault 根目錄**，或選「新增儲存庫…」建立資料夾；之後由左上角下拉選單切換。不要選 `.obsidian` 子目錄。
 4. 點選 Markdown 檔案開始編輯。停止輸入約 650 ms 自動儲存，`Cmd/Ctrl+S` 或右側 `⋯` →「手動保存」可立即儲存。
@@ -51,6 +62,10 @@ webview bundle 改為 minify，`media/main.js` 由 9.66 MB 降至 4.36 MB，VSIX
 
 清單屬於本機作業系統使用者，不寫入專案 `.vscode/settings.json`，也不透過 VSCode Settings Sync 同步。不同 profile 共用引用清單；草稿與復原版本仍保存在各 profile 的套件儲存空間。原有 `obbbsidian.dataFolder`／`privateDataFolder` 僅保留首次升級相容用途。
 
+## 設定
+
+- `obbbsidian.allowRemoteImages`（預設 `true`）：預覽時載入筆記中的遠端 `https` 圖片。遠端圖片可能被用來追蹤筆記何時被開啟；改為 `false` 後只顯示 vault 內與 `data:` 圖片。僅能在使用者設定調整，重新開啟面板或執行 `Developer: Reload Window` 後生效。
+
 ## 編輯與瀏覽
 
 - **Live Preview**：非游標行隱藏標題、粗斜體等部分語法；完整呈現用閱讀或分割預覽。
@@ -60,12 +75,12 @@ webview bundle 改為 minify，`media/main.js` 由 9.66 MB 降至 4.36 MB，VSIX
 - **原始碼**：CodeMirror 6，支援 Undo／Redo、搜尋、Markdown 補全與工具列。
 - **編輯＋預覽**：同時編輯與查看 Markdown、數學公式、Mermaid、附件。
 - **閱讀**：乾淨的呈現畫面；`Cmd/Ctrl+E` 切換閱讀與 Live Preview。
-- `[[筆記]]` 可補全；閱讀模式點連結，編輯模式 `Cmd/Ctrl+Click` 跳轉。
+- `[[筆記]]` 可補全；閱讀模式點連結，編輯模式 `Cmd/Ctrl+Click` 跳轉。`https`／`mailto` 連結以系統瀏覽器或郵件程式開啟，`obsidian://` 連結先確認再開啟。
 - 搜尋列搜尋目前 vault 的檔名與內容。每日、標籤、書籤按鈕提供各自入口。標籤／書籤下方區塊可按 ×、Escape 或再次點擊原按鈕關閉；切換儲存庫也會關閉。
 - 「大綱／連結」顯示標題、反向連結與向外連結；再次點擊收合。
 - 「附件」挑選檔案並複製到 vault，依 `app.json` 的 `attachmentFolderPath` 放置，插入 `![[...]]`。同名附件不覆寫。
 - 「範本」插入 `.obsidian/templates.json` 指定資料夾中的筆記；支援 `{{date}}`、`{{time}}`、`{{title}}`。
-- 右上角 `⋯` 提供手動保存、重新命名、移到垃圾桶、以 VSCode 編輯器開啟及開啟系統垃圾桶。復原版本仍保存在套件 globalStorage 的 `recovery` 資料夾，與垃圾桶分開。
+- 右上角 `⋯` 提供手動保存、重新命名、移到垃圾桶、以 VSCode 編輯器開啟及開啟系統垃圾桶。復原版本仍保存在套件 globalStorage 的 `recovery` 資料夾，與垃圾桶分開；每份筆記保留最近 50 份，超過 30 天自動刪除。
 
 ## 儲存與外部變更
 

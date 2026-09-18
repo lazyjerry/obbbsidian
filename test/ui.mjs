@@ -474,9 +474,141 @@ try {
     "dark",
   );
   assert.equal(await page.locator(".cm-content").innerText(), themeText);
+
+  // 惡意筆記：不可覆蓋 UI id、不可注入樣式、data-note 不可觸發外部開啟。
+  const externals = () =>
+    page.evaluate(() =>
+      window.requests.filter((m) => m.type === "external").map((m) => m.url),
+    );
+  await page.locator("#tree .file", { hasText: "Attack.md" }).click();
+  await page.locator("#mode").selectOption("read");
+  await page.locator("#preview h2").waitFor();
+  await page.locator("#preview .katex").waitFor();
+  for (const id of ["status", "menu", "count", "aux", "aux-content"])
+    assert.equal(await page.locator(`[id="${id}"]`).count(), 1, id);
+  assert.equal(
+    await page.evaluate(() => document.getElementById("status").tagName),
+    "SPAN",
+  );
+  assert.equal(
+    await page.locator("#user-content-status").innerText(),
+    "status",
+  );
+  assert.equal(await page.locator("#preview style").count(), 0);
+  assert.equal(
+    await page.locator("#preview .overlay").getAttribute("style"),
+    null,
+  );
+  assert.equal(await page.locator("#preview [name=count]").count(), 0);
+  assert.equal(
+    await page.locator("#preview .callout").getAttribute("data-callout"),
+    "note",
+  );
+  const before = (await externals()).length;
+  await page.locator("#preview .evil-note").click();
+  await page
+    .locator("#status")
+    .filter({ hasText: "obsidian://evil" })
+    .waitFor();
+  await page.locator("#preview .evil-link").click();
+  await page
+    .locator("#status")
+    .filter({ hasText: "https://evil.example" })
+    .waitFor();
+  assert.equal((await externals()).length, before);
+  // 正常外部連結（Markdown、wikilink 網址、obsidian:）仍送到 host。
+  await page.locator("#preview a", { hasText: /^ext$/ }).click();
+  await page.locator("#preview a", { hasText: "wiki ext" }).click();
+  await page.locator("#preview a", { hasText: /^ob$/ }).click();
+  await page.waitForFunction(
+    (n) =>
+      window.requests.filter((m) => m.type === "external").length === n + 3,
+    before,
+  );
+  assert.deepEqual((await externals()).slice(before), [
+    "https://example.com/a",
+    "https://example.com/wiki",
+    "obsidian://open?vault=v",
+  ]);
+  // 標題錨點：Markdown #連結與 [[#標題]] 都能跳到加上前綴的 id。
+  const sectionVisible = () =>
+    page.evaluate(() => {
+      const box = document.querySelector("#preview").getBoundingClientRect(),
+        heading = document
+          .querySelector("#user-content-Section")
+          .getBoundingClientRect();
+      return heading.top >= box.top - 1 && heading.top < box.bottom;
+    });
+  const resetScroll = () =>
+    page.evaluate(() => {
+      for (
+        let el = document.querySelector("#preview");
+        el;
+        el = el.parentElement
+      )
+        el.scrollTop = 0;
+    });
+  await resetScroll();
+  assert.equal(await sectionVisible(), false);
+  await page.locator("#preview a", { hasText: /^jump$/ }).click();
+  await page.waitForFunction(() => {
+    const box = document.querySelector("#preview").getBoundingClientRect();
+    return (
+      document.querySelector("#user-content-Section").getBoundingClientRect()
+        .top < box.bottom
+    );
+  });
+  await resetScroll();
+  assert.equal(await sectionVisible(), false);
+  await page.locator("#preview a", { hasText: "wiki jump" }).click();
+  await page.waitForFunction(() => {
+    const box = document.querySelector("#preview").getBoundingClientRect();
+    return (
+      document.querySelector("#user-content-Section").getBoundingClientRect()
+        .top < box.bottom
+    );
+  });
+  assert.equal(await page.locator("#preview #user-content-fn1").count(), 1);
+  // 大綱按鈕仍可跳轉。
+  await page.locator("#outline").click();
+  await page.locator("#aux-content button", { hasText: "Section" }).click();
+  await page.waitForFunction(() =>
+    document.querySelector(".cm-activeLine")?.textContent.includes("Section"),
+  );
+  await page.locator("#aux-close").click();
+  // wikilink 內部跳轉維持原行為。
+  await page.locator("#mode").selectOption("read");
+  await page.locator('#preview [data-note="Second"]').click();
+  await page.waitForFunction(
+    () => document.querySelector("#filename").textContent === "Second.md",
+  );
+
+  // 惡意 canvas：卡片套用同一份清理設定，檔案節點只做內部連結。
+  await page.locator("#tree .file", { hasText: "Evil.canvas" }).click();
+  await page.locator("#preview .canvas-node .katex").waitFor();
+  assert.equal(await page.locator("#preview style").count(), 0);
+  assert.equal(
+    await page.locator("#preview .cover").getAttribute("style"),
+    null,
+  );
+  assert.equal(await page.locator('[id="status"]').count(), 1);
+  assert.equal(
+    await page.locator("#preview .canvas-node #user-content-status").count(),
+    1,
+  );
+  const canvasBefore = (await externals()).length;
+  await page
+    .locator("#preview .canvas-node", { hasText: "obsidian://evil" })
+    .click();
+  await page.waitForFunction(() =>
+    window.requests.some(
+      (m) => m.type === "link" && m.target === "obsidian://evil",
+    ),
+  );
+  assert.equal((await externals()).length, canvasBefore);
   assert.deepEqual(errors, []);
   console.log(
-    "UI passed: rendering, wiki navigation, autosave, vault isolation, conflict, disk reload.",
+    "UI passed: rendering, wiki navigation, autosave, vault isolation, conflict, disk reload, sanitized notes and canvas.",
   );
 } finally {
   await browser.close();

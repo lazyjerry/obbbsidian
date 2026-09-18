@@ -63,7 +63,7 @@
 | Editor status／Word count                      | 顯示字元數與空白切分詞數；中文詞數與 Obsidian 不同                                                                                  |
 | Bookmarks                                      | 本機獨立書籤                                                                                                                        |
 | Outline                                        | Markdown ATX headings；不完整支援 Setext headings，code fence 中的 heading 可能被列入                                               |
-| File recovery                                  | 每次有效儲存保存上一版 JSON；從套件 globalStorage/recovery 手動取回 text，選單改為開啟系統垃圾桶。無 Obsidian 的復原 UI／保留期清理 |
+| File recovery                                  | 每次有效儲存保存上一版 JSON；從套件 globalStorage/recovery 手動取回 text，選單改為開啟系統垃圾桶。每份筆記保留最近 50 份，超過 30 天自動刪除；無 Obsidian 的復原 UI |
 | Sync                                           | 使用 iCloud／Dropbox 等檔案同步；不實作 Obsidian Sync 帳號與傳輸協定                                                                |
 | Publish／Slides／Audio recorder／Workspaces 等 | 本版未實作；指定 vault 也未啟用其中多數功能                                                                                         |
 

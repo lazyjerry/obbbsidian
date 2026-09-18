@@ -74,6 +74,74 @@ exports.run = async () => {
       .text,
     "draft",
   );
+  // 草稿記錄所屬筆記，啟動清理只移除已刪除筆記的草稿，未儲存草稿保留。
+  const draftFile = provider.draftPath(
+    provider.vaults.get(first.id),
+    "integration.md",
+  );
+  const storedDraft = JSON.parse(await fs.readFile(draftFile, "utf8"));
+  assert.equal(storedDraft.root, init.root);
+  assert.equal(storedDraft.path, "integration.md");
+  const orphanDraft = provider.draftPath(
+    provider.vaults.get(first.id),
+    "gone.md",
+  );
+  await fs.writeFile(
+    orphanDraft,
+    JSON.stringify({
+      text: "orphan",
+      revision: "r",
+      root: init.root,
+      path: "gone.md",
+    }),
+  );
+  provider.pruned = undefined;
+  await call("vaults");
+  await assert.rejects(fs.stat(orphanDraft), { code: "ENOENT" });
+  assert.equal(JSON.parse(await fs.readFile(draftFile, "utf8")).text, "draft");
+  // obsidian: 需經使用者確認；http(s)/mailto 維持直接開啟；其他協定拒絕。
+  const originalWarning = vscode.window.showWarningMessage;
+  const originalOpenExternal = vscode.env.openExternal;
+  const prompts = [],
+    opened = [];
+  let answer;
+  try {
+    vscode.window.showWarningMessage = async (...args) => {
+      prompts.push(args);
+      return answer;
+    };
+    try {
+      vscode.env.openExternal = async (uri) => {
+        opened.push(uri.toString(true));
+        return true;
+      };
+    } catch {}
+    const external = (url) => call("external", { root: init.root, url });
+    await assert.rejects(external("javascript:alert(1)"), /不支援/);
+    await assert.rejects(external("file:///etc/passwd"), /不支援/);
+    assert.equal(await external("obsidian://open?vault=x&file=y"), false);
+    assert.equal(prompts.length, 1);
+    assert.equal(prompts[0][1].modal, true);
+    assert.equal(prompts[0][1].detail, "obsidian://open?vault=x&file=y");
+    if (vscode.env.openExternal !== originalOpenExternal) {
+      assert.deepEqual(opened, []);
+      answer = "開啟";
+      await external("obsidian://open?vault=x&file=y");
+      await external("https://example.com/a");
+      await external("mailto:a@example.com");
+      assert.deepEqual(opened, [
+        "obsidian://open?vault=x&file=y",
+        "https://example.com/a",
+        "mailto:a@example.com",
+      ]);
+      assert.equal(prompts.length, 2, "http(s)/mailto open without a prompt");
+    } else console.log("openExternal not stubbable; skipped approval path.");
+  } finally {
+    vscode.window.showWarningMessage = originalWarning;
+    try {
+      vscode.env.openExternal = originalOpenExternal;
+    } catch {}
+  }
   await assert.rejects(
     call("read", { root: "/stale-root", path: "integration.md" }),
   );
@@ -130,8 +198,53 @@ exports.run = async () => {
     vscode.window.showSaveDialog = originalSaveDialog;
     vscode.window.showOpenDialog = originalOpenDialog;
   }
+  // 設定範圍與不受信任工作區：舊路徑設定不可由工作區覆寫。
+  const pkg = extension.packageJSON;
+  assert.equal(pkg.capabilities.untrustedWorkspaces.supported, false);
+  const properties = pkg.contributes.configuration.properties;
+  for (const key of [
+    "obbbsidian.dataFolder",
+    "obbbsidian.privateDataFolder",
+    "obbbsidian.allowRemoteImages",
+  ])
+    assert.equal(properties[key].scope, "application", key);
+  assert.equal(properties["obbbsidian.allowRemoteImages"].default, true);
+  // CSP：預設允許遠端圖片；關閉設定後 img-src 不含 https:。
+  const imgSrc = () => {
+    let html = "";
+    provider.resolveWebviewView({
+      webview: {
+        options: {},
+        cspSource: "vscode-webview:",
+        asWebviewUri: (uri) => uri,
+        onDidReceiveMessage: () => ({ dispose() {} }),
+        set html(value) {
+          html = value;
+        },
+      },
+      onDidDispose: () => {},
+    });
+    provider.view = undefined;
+    return /img-src ([^;]*);/.exec(html)[1];
+  };
+  const config = vscode.workspace.getConfiguration("obbbsidian");
+  assert.equal(imgSrc(), "vscode-webview: data: https:");
+  await config.update(
+    "allowRemoteImages",
+    false,
+    vscode.ConfigurationTarget.Global,
+  );
+  try {
+    assert.equal(imgSrc(), "vscode-webview: data:");
+  } finally {
+    await config.update(
+      "allowRemoteImages",
+      undefined,
+      vscode.ConfigurationTarget.Global,
+    );
+  }
   await vscode.commands.executeCommand("obbbsidian.open");
   console.log(
-    "Host integration passed: activation, real disk save, conflict, draft, vault isolation, panel registration.",
+    "Host integration passed: activation, real disk save, conflict, draft, vault isolation, draft cleanup, external link policy, CSP, panel registration.",
   );
 };

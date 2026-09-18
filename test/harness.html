@@ -48,6 +48,47 @@
         }),
         revision: "canvas",
       };
+      window.fixture.shared["Attack.md"] = {
+        text:
+          "# status\n\n" +
+          '<div id="menu" name="count">fake menu</div>\n\n' +
+          '<span class="evil-note" data-note="obsidian://evil">evil span</span> ' +
+          '<a class="evil-link" href="#" data-note="https://evil.example">evil link</a>\n\n' +
+          "<style>#app{display:none}</style>\n\n" +
+          '<div class="overlay" style="position:fixed;inset:0;z-index:9999">overlay</div>\n\n' +
+          "[ext](https://example.com/a) [[https://example.com/wiki|wiki ext]] [ob](obsidian://open?vault=v)\n\n" +
+          "[[#Section|wiki jump]] [jump](#Section) Footnote[^1] [[Second]]\n\n" +
+          "$x^2$\n\n> [!note] Title\n> body\n\n" +
+          "filler\n\n".repeat(80) +
+          "## Section\n\nend\n\n[^1]: detail\n",
+        revision: "attack",
+      };
+      window.fixture.shared["Evil.canvas"] = {
+        text: JSON.stringify({
+          nodes: [
+            {
+              id: "t",
+              type: "text",
+              text: '<div class="cover" style="position:fixed;inset:0;z-index:9999">cover</div><style>body{display:none}</style>\n\n# status\n\n$y^2$ [[Second]]',
+              x: 0,
+              y: 0,
+              width: 300,
+              height: 200,
+            },
+            {
+              id: "f",
+              type: "file",
+              file: "obsidian://evil",
+              x: 400,
+              y: 0,
+              width: 200,
+              height: 80,
+            },
+          ],
+          edges: [],
+        }),
+        revision: "evil-canvas",
+      };
       window.fixture.shared["Data.base"] = {
         text: "views:\n  - type: table\n    name: Notes\n",
         revision: "base",
@@ -134,9 +175,16 @@
                 delete drafts[m.source + m.path];
                 result = {};
                 break;
-              case "link":
-                result = { path: m.target + ".md" };
+              case "link": {
+                // 與 host 的 resolveLink 相同：網址形式的目標找不到筆記，[[#標題]] 指向目前筆記。
+                const [name, anchor] = m.target.split("#");
+                result = /^[a-z]+:/i.test(m.target)
+                  ? undefined
+                  : name
+                    ? { path: name + ".md", anchor }
+                    : { path: m.path, anchor };
                 break;
+              }
               default:
                 result = {};
             }

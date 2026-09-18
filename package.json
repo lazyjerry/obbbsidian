@@ -2,7 +2,7 @@
   "name": "obbbsidian",
   "displayName": "obbbsidian",
   "description": "Obsidian-compatible local Markdown vaults in a two-column VS Code panel.",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "publisher": "workjerry",
   "license": "MIT",
   "icon": "resources/icon.png",
@@ -22,6 +22,11 @@
     "ui"
   ],
   "main": "./out/extension.js",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false
+    }
+  },
   "contributes": {
     "viewsContainers": {
       "panel": [
@@ -69,16 +74,22 @@
         "obbbsidian.dataFolder": {
           "type": "string",
           "default": "",
-          "scope": "machine-overridable",
+          "scope": "application",
           "description": "舊版儲存庫路徑；僅於首次升級時匯入裝置共用清單。",
           "deprecationMessage": "請改用 obbbsidian 面板齒輪管理儲存庫；清單存於本機 ~/.obbbsidian/vaults/，不再由工作區設定控制。"
         },
         "obbbsidian.privateDataFolder": {
           "type": "string",
           "default": "",
-          "scope": "machine-overridable",
+          "scope": "application",
           "description": "舊版儲存庫路徑；僅於首次升級時匯入裝置共用清單。",
           "deprecationMessage": "請改用 obbbsidian 面板齒輪管理儲存庫；清單存於本機 ~/.obbbsidian/vaults/，不再由工作區設定控制。"
+        },
+        "obbbsidian.allowRemoteImages": {
+          "type": "boolean",
+          "default": true,
+          "scope": "application",
+          "description": "預覽時載入筆記中的遠端 https 圖片。關閉可避免遠端圖片被用來追蹤開啟紀錄；重新開啟面板或 Reload Window 後生效。"
         }
       }
     },

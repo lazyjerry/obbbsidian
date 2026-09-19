@@ -11,3 +11,5 @@ package-lock.json
 docs/working-notes-skill/**
 *.vsix
 *.vsix.sha256
+**/*衝突的複本*
+**/*conflicted copy*
